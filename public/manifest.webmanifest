@@ -1,0 +1,19 @@
+{
+  "name": "কৃষক বাজার",
+  "short_name": "কৃষক বাজার",
+  "description": "কৃষকের ন্যায্য মূল্য, ক্রেতার সঠিক বাজার",
+  "lang": "bn",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5faf6",
+  "theme_color": "#176b3a",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
