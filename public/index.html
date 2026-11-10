@@ -1,26 +1,468 @@
-<!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>কৃষক বাজার</title>
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>কৃষক বাজার</title>
+
+<meta name="description" content="কৃষকের ন্যায্য মূল্য, ক্রেতার সঠিক বাজার">
+<meta name="theme-color" content="#176b3a">
+
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+
 <style>
-body{margin:0;background:#f5faf6;color:#173b29;font-family:system-ui,"Noto Sans Bengali",sans-serif}header{background:#176b3a;color:white;padding:16px}main{max-width:1000px;margin:auto;padding:18px}.brand{font-size:25px;font-weight:800}.sub{opacity:.85}.hero,.box,.item{background:white;border:1px solid #dce9df;border-radius:15px;padding:18px;margin:14px 0}.hero{background:#176b3a;color:white;padding:28px}h1{margin:0 0 8px}button{background:#176b3a;color:white;border:0;border-radius:9px;padding:11px 14px;font-weight:bold;cursor:pointer}input,select,textarea{padding:11px;border:1px solid #cddfd1;border-radius:9px;width:100%;box-sizing:border-box;margin:5px 0 12px;font:inherit}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.items{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.price{font-weight:800;color:#176b3a;font-size:20px}.muted{color:#65766a;font-size:13px}.tabs{display:flex;gap:8px;flex-wrap:wrap}.hidden{display:none}.warn{background:#fff5db;padding:12px;border-radius:10px;font-size:13px}@media(max-width:650px){.items,.row{grid-template-columns:1fr}}
-</style></head><body><header><div class="brand">🌾 কৃষক বাজার</div><div class="sub">কৃষকের ন্যায্য মূল্য, ক্রেতার সঠিক বাজার</div></header><main>
-<div class="hero"><h1>উৎপাদক থেকে ক্রেতা—সরাসরি</h1><p>ধান, ডাল, গম, সবজি, ফল ও মাছের অনলাইন বাজার।</p><div class="tabs"><button onclick="show('products')">পণ্য দেখুন</button><button onclick="show('register')">নিবন্ধন</button><button onclick="show('login')">লগইন</button><button onclick="show('sell')">পণ্য যোগ করুন</button><button onclick="show('orders')">আমার অর্ডার</button></div></div>
-<section id="products"><h2>বাজারের পণ্য</h2><input id="q" placeholder="পণ্য খুঁজুন..." oninput="loadProducts()"><div class="items" id="items"></div></section>
-<section id="register" class="box hidden"><h2>নতুন অ্যাকাউন্ট</h2><form onsubmit="register(event)"><label>নাম<input name="name" required></label><div class="row"><label>মোবাইল<input name="phone" required placeholder="01XXXXXXXXX"></label><label>জেলা<input name="district" required></label></div><div class="row"><label>ভূমিকা<select name="role"><option value="farmer">কৃষক / উৎপাদক</option><option value="buyer">ক্রেতা</option></select></label><label>পাসওয়ার্ড<input name="password" type="password" minlength="8" required></label></div><button>নিবন্ধন করুন</button></form></section>
-<section id="login" class="box hidden"><h2>লগইন</h2><form onsubmit="login(event)"><label>মোবাইল<input name="phone" required></label><label>পাসওয়ার্ড<input name="password" type="password" required></label><button>লগইন</button></form></section>
-<section id="sell" class="box hidden"><h2>পণ্য প্রকাশ করুন</h2><form onsubmit="sell(event)"><label>পণ্যের নাম<input name="name" required></label><div class="row"><label>বিভাগ<select name="category"><option>ধান ও শস্য</option><option>ডাল ও মসলা</option><option>সবজি</option><option>ফল</option><option>মাছ</option><option>অন্যান্য</option></select></label><label>জেলা<input name="district" required></label></div><div class="row"><label>দাম (টাকা)<input name="price_bdt" type="number" min="1" step=".01" required></label><label>একক<input name="unit" placeholder="কেজি / মণ" required></label></div><div class="row"><label>পরিমাণ<input name="quantity" type="number" min=".01" step=".01" required></label><label>যোগাযোগ নম্বর<input name="contact_phone" placeholder="01XXXXXXXXX" required></label></div><label>বিবরণ<textarea name="description"></textarea></label><button>পণ্য প্রকাশ করুন</button></form></section>
-<section id="orders" class="box hidden"><h2>আমার অর্ডার</h2><button onclick="loadOrders()">রিফ্রেশ</button><div id="orderList"></div></section>
-<div class="warn">এটি একটি চালানোর উপযোগী MVP সোর্স কোড। বাস্তব ব্যবহারের আগে ডোমেইন/হোস্টিং, HTTPS, শক্তিশালী অ্যাডমিন অ্যাকাউন্ট, বিক্রেতা পরিচয় যাচাই, ব্যাকআপ, গোপনীয়তা নীতি, পেমেন্ট গেটওয়ে ও ডেলিভারি অংশ সম্পন্ন করতে হবে। এখন পেমেন্টে শুধু ক্যাশ অন ডেলিভারি বা সরাসরি যোগাযোগের অর্ডার রেকর্ড হয়; অনলাইন টাকা গ্রহণ সক্রিয় নয়।</div>
-</main><script>
-let token=localStorage.getItem("kb_token")||"";
-function show(id){document.querySelectorAll("main section").forEach(x=>x.classList.add("hidden"));document.getElementById(id).classList.remove("hidden");if(id==="orders")loadOrders()}
-async function api(url,opts={}){opts.headers={...(opts.headers||{}),...(token?{Authorization:"Bearer "+token}:{})};if(opts.body){opts.headers["Content-Type"]="application/json"}let r=await fetch("/api"+url,opts);let d=await r.json();if(!r.ok)throw Error(d.error||"সমস্যা হয়েছে");return d}
-function formObj(form){return Object.fromEntries(new FormData(form))}
-async function register(e){e.preventDefault();try{let d=await api("/auth/register",{method:"POST",body:JSON.stringify(formObj(e.target))});token=d.token;localStorage.setItem("kb_token",token);alert("নিবন্ধন সফল");show("products")}catch(x){alert(x.message)}}
-async function login(e){e.preventDefault();try{let d=await api("/auth/login",{method:"POST",body:JSON.stringify(formObj(e.target))});token=d.token;localStorage.setItem("kb_token",token);alert("লগইন সফল");show("products")}catch(x){alert(x.message)}}
-async function loadProducts(){try{let d=await api("/products?q="+encodeURIComponent(document.getElementById("q").value));document.getElementById("items").innerHTML=d.products.map(p=>`<article class="item"><b>${esc(p.name)}</b><div class="price">৳${Number(p.price_bdt).toLocaleString("bn-BD")} / ${esc(p.unit)}</div><p>${esc(p.category)} · ${esc(p.district)}</p><p class="muted">বিক্রেতা: ${esc(p.seller_name)} · পরিমাণ ${p.quantity} ${esc(p.unit)}</p><p>${esc(p.description||"")}</p><button onclick="contact('${p.contact_phone}')">যোগাযোগ</button> <button onclick="order(${p.id})">অর্ডার</button></article>`).join("")||"এখনো পণ্য নেই"}catch(e){document.getElementById("items").textContent=e.message}}
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function contact(phone){alert("বিক্রেতার নম্বর: "+phone)}
-async function sell(e){e.preventDefault();try{await api("/products",{method:"POST",body:JSON.stringify(formObj(e.target))});alert("পণ্য প্রকাশিত হয়েছে");e.target.reset();show("products");loadProducts()}catch(x){alert(x.message)}}
-async function order(id){if(!token){alert("অর্ডার করতে আগে ক্রেতা হিসেবে লগইন করুন");show("login");return}let quantity=prompt("কত পরিমাণ অর্ডার করবেন?");if(!quantity)return;let phone=prompt("আপনার বাংলাদেশি মোবাইল নম্বর?");let address=prompt("ডেলিভারির ঠিকানা?");if(!phone||!address)return;try{let d=await api("/orders",{method:"POST",body:JSON.stringify({product_id:id,quantity:Number(quantity),buyer_phone:phone,delivery_address:address,payment_method:"cash_on_delivery"})});alert("অর্ডার হয়েছে। মোট ৳"+d.total_bdt); }catch(x){alert(x.message)}}
-async function loadOrders(){try{let d=await api("/orders");document.getElementById("orderList").innerHTML=d.orders.map(o=>`<div class="item">অর্ডার #${o.id} — ${esc(o.product_name)}<br>পরিমাণ: ${o.quantity} · মোট ৳${o.total_bdt}<br>অবস্থা: ${esc(o.status)}</div>`).join("")||"কোনো অর্ডার নেই"}catch(e){document.getElementById("orderList").textContent=e.message}}
+body {
+  margin:0;
+  background:#f5faf6;
+  color:#173b29;
+  font-family:system-ui,"Noto Sans Bengali",sans-serif;
+}
+
+header {
+  background:#176b3a;
+  color:white;
+  padding:16px;
+}
+
+main {
+  max-width:1000px;
+  margin:auto;
+  padding:18px;
+}
+
+.brand {
+  font-size:25px;
+  font-weight:800;
+}
+
+.sub {
+  opacity:.85;
+}
+
+.hero,.box,.item {
+  background:white;
+  border:1px solid #dce9df;
+  border-radius:15px;
+  padding:18px;
+  margin:14px 0;
+}
+
+.hero {
+  background:#176b3a;
+  color:white;
+  padding:28px;
+}
+
+h1 {
+  margin:0 0 8px;
+}
+
+button {
+  background:#176b3a;
+  color:white;
+  border:0;
+  border-radius:9px;
+  padding:11px 14px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+input,select,textarea {
+  padding:11px;
+  border:1px solid #cddfd1;
+  border-radius:9px;
+  width:100%;
+  box-sizing:border-box;
+  margin:5px 0 12px;
+  font:inherit;
+}
+
+.row {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.items {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+
+.price {
+  font-weight:800;
+  color:#176b3a;
+  font-size:20px;
+}
+
+.muted {
+  color:#65766a;
+  font-size:13px;
+}
+
+.tabs {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.hidden {
+  display:none;
+}
+
+.warn {
+  background:#fff5db;
+  padding:12px;
+  border-radius:10px;
+  font-size:13px;
+}
+
+@media(max-width:650px) {
+  .items,.row {
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="brand">🌾 কৃষক বাজার</div>
+  <div class="sub">কৃষকের ন্যায্য মূল্য, ক্রেতার সঠিক বাজার</div>
+</header>
+
+<main>
+
+<div class="hero">
+  <h1>উৎপাদক থেকে ক্রেতা—সরাসরি</h1>
+  <p>ধান, ডাল, গম, সবজি, ফল ও মাছের অনলাইন বাজার।</p>
+
+  <div class="tabs">
+    <button onclick="show('products')">পণ্য দেখুন</button>
+    <button onclick="show('register')">নিবন্ধন</button>
+    <button onclick="show('login')">লগইন</button>
+    <button onclick="show('sell')">পণ্য যোগ করুন</button>
+    <button onclick="show('orders')">আমার অর্ডার</button>
+  </div>
+</div>
+
+<section id="products">
+  <h2>বাজারের পণ্য</h2>
+  <input id="q" placeholder="পণ্য খুঁজুন..." oninput="loadProducts()">
+  <div class="items" id="items"></div>
+</section>
+
+<section id="register" class="box hidden">
+  <h2>নতুন অ্যাকাউন্ট</h2>
+
+  <form onsubmit="register(event)">
+    <label>নাম<input name="name" required></label>
+
+    <div class="row">
+      <label>মোবাইল<input name="phone" required placeholder="01XXXXXXXXX"></label>
+      <label>জেলা<input name="district" required></label>
+    </div>
+
+    <div class="row">
+      <label>
+        ভূমিকা
+        <select name="role">
+          <option value="farmer">কৃষক / উৎপাদক</option>
+          <option value="buyer">ক্রেতা</option>
+        </select>
+      </label>
+
+      <label>
+        পাসওয়ার্ড
+        <input name="password" type="password" minlength="8" required>
+      </label>
+    </div>
+
+    <button>নিবন্ধন করুন</button>
+  </form>
+</section>
+
+<section id="login" class="box hidden">
+  <h2>লগইন</h2>
+
+  <form onsubmit="login(event)">
+    <label>মোবাইল<input name="phone" required></label>
+    <label>পাসওয়ার্ড<input name="password" type="password" required></label>
+    <button>লগইন</button>
+  </form>
+</section>
+
+<section id="sell" class="box hidden">
+  <h2>পণ্য প্রকাশ করুন</h2>
+
+  <form onsubmit="sell(event)">
+    <label>পণ্যের নাম<input name="name" required></label>
+
+    <div class="row">
+      <label>
+        বিভাগ
+        <select name="category">
+          <option>ধান ও শস্য</option>
+          <option>ডাল ও মসলা</option>
+          <option>সবজি</option>
+          <option>ফল</option>
+          <option>মাছ</option>
+          <option>অন্যান্য</option>
+        </select>
+      </label>
+
+      <label>জেলা<input name="district" required></label>
+    </div>
+
+    <div class="row">
+      <label>দাম (টাকা)<input name="price_bdt" type="number" min="1" step=".01" required></label>
+      <label>একক<input name="unit" placeholder="কেজি / মণ" required></label>
+    </div>
+
+    <div class="row">
+      <label>পরিমাণ<input name="quantity" type="number" min=".01" step=".01" required></label>
+      <label>যোগাযোগ নম্বর<input name="contact_phone" placeholder="01XXXXXXXXX" required></label>
+    </div>
+
+    <label>বিবরণ<textarea name="description"></textarea></label>
+
+    <button>পণ্য প্রকাশ করুন</button>
+  </form>
+</section>
+
+<section id="orders" class="box hidden">
+  <h2>আমার অর্ডার</h2>
+  <button onclick="loadOrders()">রিফ্রেশ</button>
+  <div id="orderList"></div>
+</section>
+
+<div class="warn">
+  এটি কৃষক বাজারের MVP সংস্করণ।
+  বাস্তব ব্যবহারের আগে নিরাপত্তা, অ্যাডমিন ব্যবস্থা,
+  বিক্রেতা যাচাই, ব্যাকআপ, গোপনীয়তা নীতি,
+  পেমেন্ট গেটওয়ে ও ডেলিভারি ব্যবস্থা সম্পন্ন করতে হবে।
+  বর্তমানে অর্ডারে ক্যাশ অন ডেলিভারি ব্যবহৃত হয়।
+</div>
+
+</main>
+
+<script>
+let token = localStorage.getItem("kb_token") || "";
+
+function show(id) {
+  document.querySelectorAll("main section").forEach(x =>
+    x.classList.add("hidden")
+  );
+
+  document.getElementById(id).classList.remove("hidden");
+
+  if(id === "orders") loadOrders();
+}
+
+async function api(url, opts = {}) {
+  opts.headers = {
+    ...(opts.headers || {}),
+    ...(token ? {Authorization:"Bearer " + token} : {})
+  };
+
+  if(opts.body) {
+    opts.headers["Content-Type"] = "application/json";
+  }
+
+  let r = await fetch("/api" + url, opts);
+  let d = await r.json();
+
+  if(!r.ok) throw Error(d.error || "সমস্যা হয়েছে");
+
+  return d;
+}
+
+function formObj(form) {
+  return Object.fromEntries(new FormData(form));
+}
+
+async function register(e) {
+  e.preventDefault();
+
+  try {
+    let d = await api("/auth/register", {
+      method:"POST",
+      body:JSON.stringify(formObj(e.target))
+    });
+
+    token = d.token;
+    localStorage.setItem("kb_token", token);
+
+    alert("নিবন্ধন সফল");
+    show("products");
+
+  } catch(x) {
+    alert(x.message);
+  }
+}
+
+async function login(e) {
+  e.preventDefault();
+
+  try {
+    let d = await api("/auth/login", {
+      method:"POST",
+      body:JSON.stringify(formObj(e.target))
+    });
+
+    token = d.token;
+    localStorage.setItem("kb_token", token);
+
+    alert("লগইন সফল");
+    show("products");
+
+  } catch(x) {
+    alert(x.message);
+  }
+}
+
+async function loadProducts() {
+  try {
+    let d = await api(
+      "/products?q=" +
+      encodeURIComponent(document.getElementById("q").value)
+    );
+
+    document.getElementById("items").innerHTML =
+      d.products.map(p => `
+        <article class="item">
+          <b>${esc(p.name)}</b>
+
+          <div class="price">
+            ৳${Number(p.price_bdt).toLocaleString("bn-BD")} / ${esc(p.unit)}
+          </div>
+
+          <p>${esc(p.category)} · ${esc(p.district)}</p>
+
+          <p class="muted">
+            বিক্রেতা: ${esc(p.seller_name)}
+            · পরিমাণ ${p.quantity} ${esc(p.unit)}
+          </p>
+
+          <p>${esc(p.description || "")}</p>
+
+          <button onclick="contact('${esc(p.contact_phone)}')">
+            যোগাযোগ
+          </button>
+
+          <button onclick="order(${p.id})">
+            অর্ডার
+          </button>
+        </article>
+      `).join("") || "এখনো পণ্য নেই";
+
+  } catch(e) {
+    document.getElementById("items").textContent = e.message;
+  }
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  }[c]));
+}
+
+function contact(phone) {
+  alert("বিক্রেতার নম্বর: " + phone);
+}
+
+async function sell(e) {
+  e.preventDefault();
+
+  try {
+    await api("/products", {
+      method:"POST",
+      body:JSON.stringify(formObj(e.target))
+    });
+
+    alert("পণ্য প্রকাশিত হয়েছে");
+    e.target.reset();
+    show("products");
+    loadProducts();
+
+  } catch(x) {
+    alert(x.message);
+  }
+}
+
+async function order(id) {
+  if(!token) {
+    alert("অর্ডার করতে আগে ক্রেতা হিসেবে লগইন করুন");
+    show("login");
+    return;
+  }
+
+  let quantity = prompt("কত পরিমাণ অর্ডার করবেন?");
+  if(!quantity) return;
+
+  let phone = prompt("আপনার বাংলাদেশি মোবাইল নম্বর?");
+  let address = prompt("ডেলিভারির ঠিকানা?");
+
+  if(!phone || !address) return;
+
+  try {
+    let d = await api("/orders", {
+      method:"POST",
+      body:JSON.stringify({
+        product_id:id,
+        quantity:Number(quantity),
+        buyer_phone:phone,
+        delivery_address:address,
+        payment_method:"cash_on_delivery"
+      })
+    });
+
+    alert("অর্ডার হয়েছে। মোট ৳" + d.total_bdt);
+
+  } catch(x) {
+    alert(x.message);
+  }
+}
+
+async function loadOrders() {
+  try {
+    let d = await api("/orders");
+
+    document.getElementById("orderList").innerHTML =
+      d.orders.map(o => `
+        <div class="item">
+          অর্ডার #${o.id} — ${esc(o.product_name)}
+          <br>
+          পরিমাণ: ${o.quantity} · মোট ৳${o.total_bdt}
+          <br>
+          অবস্থা: ${esc(o.status)}
+        </div>
+      `).join("") || "কোনো অর্ডার নেই";
+
+  } catch(e) {
+    document.getElementById("orderList").textContent = e.message;
+  }
+}
+
 loadProducts();
-</script></body></html>
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js")
+      .then(() => console.log("Service Worker Ready"))
+      .catch(error => console.error("Service Worker Error:", error));
+  });
+}
+</script>
+
+</body>
+</html>
