@@ -16,6 +16,7 @@ if (!JWT_SECRET || JWT_SECRET.length < 32) {
   process.exit(1);
 }
 const db = new Database(process.env.DB_FILE || "krishok-bazar.sqlite");
+const DISTRICTS = ["ঢাকা", "গাজীপুর", "নারায়ণগঞ্জ", "নরসিংদী", "মুন্সিগঞ্জ", "মানিকগঞ্জ", "মাদারীপুর", "শরীয়তপুর", "ফরিদপুর", "রাজবাড়ী", "গোপালগঞ্জ", "টাঙ্গাইল", "কিশোরগঞ্জ", "চট্টগ্রাম", "কক্সবাজার", "কুমিল্লা", "ব্রাহ্মণবাড়িয়া", "চাঁদপুর", "ফেনী", "নোয়াখালী", "লক্ষ্মীপুর", "রাঙ্গামাটি", "খাগড়াছড়ি", "বান্দরবান", "রাজশাহী", "নাটোর", "নওগাঁ", "চাঁপাইনবাবগঞ্জ", "পাবনা", "সিরাজগঞ্জ", "বগুড়া", "জয়পুরহাট", "খুলনা", "যশোর", "সাতক্ষীরা", "বাগেরহাট", "নড়াইল", "মাগুরা", "ঝিনাইদহ", "কুষ্টিয়া", "চুয়াডাঙ্গা", "মেহেরপুর", "বরিশাল", "পটুয়াখালী", "ভোলা", "পিরোজপুর", "বরগুনা", "ঝালকাঠি", "সিলেট", "মৌলভীবাজার", "হবিগঞ্জ", "সুনামগঞ্জ", "রংপুর", "দিনাজপুর", "গাইবান্ধা", "কুড়িগ্রাম", "লালমনিরহাট", "নীলফামারী", "ঠাকুরগাঁও", "পঞ্চগড়", "ময়মনসিংহ", "জামালপুর", "শেরপুর", "নেত্রকোণা"];
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 db.exec(`
@@ -61,6 +62,30 @@ CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_district ON products(district);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_seller ON orders(seller_id);
+CREATE TABLE IF NOT EXISTS market_prices (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ farmer_id INTEGER NOT NULL REFERENCES users(id),
+ product_name TEXT NOT NULL,
+ market_name TEXT NOT NULL,
+ district TEXT NOT NULL,
+ price_bdt REAL NOT NULL CHECK(price_bdt > 0),
+ unit TEXT NOT NULL,
+ source_note TEXT DEFAULT '',
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ reviewed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_market_prices_district ON market_prices(district);
+CREATE INDEX IF NOT EXISTS idx_market_prices_status ON market_prices(status);
+CREATE TABLE IF NOT EXISTS product_reports (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ product_id INTEGER NOT NULL REFERENCES products(id),
+ reporter_id INTEGER REFERENCES users(id),
+ reason TEXT NOT NULL,
+ details TEXT DEFAULT '',
+ status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','reviewed','dismissed')),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 `);
 
 app.use(helmet({contentSecurityPolicy:false}));
@@ -79,13 +104,42 @@ function role(...roles){return (req,res,next)=>roles.includes(req.user.role)?nex
 function token(user){return jwt.sign({id:user.id,role:user.role,name:user.name},JWT_SECRET,{expiresIn:"7d"});}
 function publicUser(u){return {id:u.id,name:u.name,phone:u.phone,role:u.role,district:u.district,verified:!!u.verified};}
 
+app.get("/api/districts",(req,res)=>res.json({districts:DISTRICTS}));
 app.get("/api/health",(req,res)=>res.json({ok:true,service:"Krishok Bazar"}));
+
+// Farmer-submitted market prices are community reports, not official DAM rates.
+app.get("/api/market-prices",(req,res)=>{
+ const district=clean(req.query.district,80), q=clean(req.query.q,100);
+ const rows=db.prepare(`SELECT mp.id,mp.product_name,mp.market_name,mp.district,mp.price_bdt,mp.unit,mp.source_note,mp.created_at,u.name farmer_name
+ FROM market_prices mp JOIN users u ON u.id=mp.farmer_id
+ WHERE mp.status='approved' AND (?='' OR mp.district=?) AND (?='' OR mp.product_name LIKE '%'||?||'%')
+ ORDER BY mp.created_at DESC LIMIT 250`).all(district,district,q,q);
+ res.json({prices:rows,notice:"এগুলো কৃষকের জমা দেওয়া ও যাচাইকৃত স্থানীয় বাজারদর; সরকারি DAM দর নয়।"});
+});
+app.post("/api/market-prices",auth,role("farmer"),(req,res)=>{
+ const b=req.body, product=clean(b.product_name,100), market=clean(b.market_name,120);
+ const district=clean(b.district,80), unit=clean(b.unit,20), note=clean(b.source_note,300), price=Number(b.price_bdt);
+ if(!product||!market||!DISTRICTS.includes(district)||!unit||!Number.isFinite(price)||price<=0)
+  return res.status(400).json({error:"পণ্য, বাজার, সঠিক জেলা, দাম ও একক দিন"});
+ const info=db.prepare("INSERT INTO market_prices(farmer_id,product_name,market_name,district,price_bdt,unit,source_note) VALUES(?,?,?,?,?,?,?)")
+ .run(req.user.id,product,market,district,price,unit,note);
+ res.status(201).json({id:info.lastInsertRowid,status:"pending",message:"বাজারদর জমা হয়েছে; অনুমোদনের পর সবার কাছে দেখা যাবে"});
+});
+app.post("/api/products/:id/report",(req,res)=>{
+ const id=Number(req.params.id), reason=clean(req.body.reason,80), details=clean(req.body.details,500);
+ const product=db.prepare("SELECT id FROM products WHERE id=?").get(id);
+ if(!product)return res.status(404).json({error:"পণ্য পাওয়া যায়নি"});
+ if(!["ভুল দাম","ভুয়া পণ্য","ভুল যোগাযোগ","অন্যান্য"].includes(reason))return res.status(400).json({error:"রিপোর্টের কারণ নির্বাচন করুন"});
+ const reporterId=req.headers.authorization ? (()=>{try{return jwt.verify(req.headers.authorization.replace(/^Bearer /,""),JWT_SECRET).id}catch{return null}})() : null;
+ db.prepare("INSERT INTO product_reports(product_id,reporter_id,reason,details) VALUES(?,?,?,?)").run(id,reporterId,reason,details);
+ res.status(201).json({message:"রিপোর্ট গ্রহণ করা হয়েছে"});
+});
 
 app.post("/api/auth/register", async (req,res)=>{
  try{
   const name=clean(req.body.name,100), phone=clean(req.body.phone,20), password=String(req.body.password||"");
   const roleValue=req.body.role, district=clean(req.body.district,80);
-  if(!name||!/^01[3-9]\d{8}$/.test(phone)||password.length<8||!["farmer","buyer"].includes(roleValue)||!district)
+  if(!name||!/^01[3-9]\d{8}$/.test(phone)||password.length<8||!["farmer","buyer"].includes(roleValue)||!DISTRICTS.includes(district))
     return res.status(400).json({error:"সঠিক নাম, বাংলাদেশি মোবাইল নম্বর, জেলা, ভূমিকা এবং কমপক্ষে ৮ অক্ষরের পাসওয়ার্ড দিন"});
   const hash=await bcrypt.hash(password,12);
   const info=db.prepare("INSERT INTO users(name,phone,password_hash,role,district) VALUES(?,?,?,?,?)").run(name,phone,hash,roleValue,district);
@@ -120,7 +174,7 @@ app.post("/api/products",auth,role("farmer"),(req,res)=>{
  const unit=clean(b.unit,20), district=clean(b.district,80), contact=clean(b.contact_phone,20);
  const price=Number(b.price_bdt), quantity=Number(b.quantity);
  const cats=["ধান ও শস্য","ডাল ও মসলা","সবজি","ফল","মাছ","অন্যান্য"];
- if(!name||!cats.includes(category)||!unit||!district||!/^01[3-9]\d{8}$/.test(contact)||!Number.isFinite(price)||price<=0||!Number.isFinite(quantity)||quantity<=0)
+ if(!name||!cats.includes(category)||!unit||!DISTRICTS.includes(district)||!/^01[3-9]\d{8}$/.test(contact)||!Number.isFinite(price)||price<=0||!Number.isFinite(quantity)||quantity<=0)
   return res.status(400).json({error:"পণ্যের সব তথ্য সঠিকভাবে দিন"});
  const info=db.prepare("INSERT INTO products(seller_id,name,category,description,price_bdt,unit,quantity,district,contact_phone) VALUES(?,?,?,?,?,?,?,?,?)")
  .run(req.user.id,name,category,description,price,unit,quantity,district,contact);
@@ -164,6 +218,33 @@ app.patch("/api/orders/:id/status",auth,role("farmer","admin"),(req,res)=>{
  if(!allowed.includes(req.body.status))return res.status(400).json({error:"অবস্থা সঠিক নয়"});
  db.prepare("UPDATE orders SET status=? WHERE id=?").run(req.body.status,o.id);
  res.json({message:"অর্ডারের অবস্থা পরিবর্তন হয়েছে"});
+});
+
+app.get("/api/admin/market-prices",auth,role("admin"),(req,res)=>{
+ const status=clean(req.query.status,20);
+ const rows=db.prepare(`SELECT mp.*,u.name farmer_name,u.phone farmer_phone FROM market_prices mp JOIN users u ON u.id=mp.farmer_id
+ WHERE (?='' OR mp.status=?) ORDER BY mp.created_at DESC LIMIT 300`).all(status,status);
+ res.json({prices:rows});
+});
+app.patch("/api/admin/market-prices/:id",auth,role("admin"),(req,res)=>{
+ const status=clean(req.body.status,20);
+ if(!["approved","rejected"].includes(status))return res.status(400).json({error:"অনুমোদন বা বাতিল নির্বাচন করুন"});
+ const info=db.prepare("UPDATE market_prices SET status=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?").run(status,Number(req.params.id));
+ if(!info.changes)return res.status(404).json({error:"বাজারদরের তথ্য পাওয়া যায়নি"});
+ res.json({message:status==="approved"?"বাজারদর অনুমোদিত":"বাজারদর বাতিল"});
+});
+app.get("/api/admin/product-reports",auth,role("admin"),(req,res)=>{
+ const rows=db.prepare(`SELECT r.*,p.name product_name,u.name reporter_name FROM product_reports r
+ JOIN products p ON p.id=r.product_id LEFT JOIN users u ON u.id=r.reporter_id
+ ORDER BY r.created_at DESC LIMIT 300`).all();
+ res.json({reports:rows});
+});
+app.patch("/api/admin/product-reports/:id",auth,role("admin"),(req,res)=>{
+ const status=clean(req.body.status,20);
+ if(!["reviewed","dismissed"].includes(status))return res.status(400).json({error:"সঠিক অবস্থা দিন"});
+ const info=db.prepare("UPDATE product_reports SET status=? WHERE id=?").run(status,Number(req.params.id));
+ if(!info.changes)return res.status(404).json({error:"রিপোর্ট পাওয়া যায়নি"});
+ res.json({message:"রিপোর্ট আপডেট হয়েছে"});
 });
 
 app.get("/api/admin/summary",auth,role("admin"),(req,res)=>{
